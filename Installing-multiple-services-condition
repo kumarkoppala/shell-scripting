@@ -13,7 +13,7 @@ fi
 if [ $? -eq 0 ]; then
 exit 1
 else
-dnf install ${services[0]} -y >> log_dir
+dnf install mysql -y >> log_dir
 echo "mysql installed successfully"
 fi
 if [ ${services[1]} == nginx ]; then
