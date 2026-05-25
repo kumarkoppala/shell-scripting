@@ -1,5 +1,5 @@
 #!/bin/bash
-log_dir=$(mkdir -p /var/log/services.log)
+log_dir=$(touch /var/log/services.log)
 services=("mysql" "nginx" "http")
 uid=$(id -u)
 if [ $uid -ne 0 ]; then
@@ -7,7 +7,7 @@ echo "please run command with sudo"
 exit 1
 fi
 VALIDATE(){
-    elif [ $? -eq 0 ]; then
+    else if [ $? -eq 0 ]; then
     exit 1
     else
     dnf install nginx -y >> log_dir
@@ -18,7 +18,7 @@ mysql --version
 $?
 fi
 VALIDATE mysql $?
-FI
+fi
 #if [ $? -eq 0 ]; then
 #exit 1
 #else
