@@ -6,7 +6,7 @@ if [ $uid -ne 0 ]; then
 echo "please run command with sudo"
 exit 1
 fi
-if [ ${services[1]} -eq mysql ]; then
+if [ ${services[0]} == mysql ]; then
 mysql --version
 $?
 fi
@@ -16,7 +16,7 @@ else
 dnf install ${services[0]} -y >> log_dir
 echo "mysql installed successfully"
 fi
-if [ ${services[2]} -eq nginx ]; then
+if [ ${services[1]} == nginx ]; then
 nginx -v
 $?
 fi
