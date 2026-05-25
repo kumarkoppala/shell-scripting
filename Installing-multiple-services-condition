@@ -6,26 +6,37 @@ if [ $uid -ne 0 ]; then
 echo "please run command with sudo"
 exit 1
 fi
+VALIDATE(){
+    elif [ $? -eq 0 ]; then
+    exit 1
+    else
+    dnf install nginx -y >> log_dir
+    exit 1
+}
 if [ ${services[0]} == mysql ]; then
 mysql --version
 $?
 fi
-if [ $? -eq 0 ]; then
-exit 1
-else
-dnf install mysqld -y >> log_dir
-echo "mysql installed successfully"
-fi
+VALIDATE mysql $?
+FI
+#if [ $? -eq 0 ]; then
+#exit 1
+#else
+#dnf install mysqld -y >> log_dir
+#echo "mysql installed successfully"
+#fi
 if [ ${services[1]} == nginx ]; then
 nginx -v
 $?
 fi
-if [ $? -eq 0 ]; then
-exit 1
-else
-dnf install nginx -y >> log_dir
-exit
+VALIDATE nginx $?
 fi
+#if [ $? -eq 0 ]; then
+#exit 1
+#else
+#dnf install nginx -y >> log_dir
+#exit
+#fi
 
 
 
