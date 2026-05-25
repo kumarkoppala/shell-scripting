@@ -1,42 +1,45 @@
 #!/bin/bash
-log_dir=$(touch /var/log/services.log)
+
+# 1. Define log file path correctly
+LOG_FILE="/var/log/services.log"
+
+# Create the file if it doesn't exist
+touch "$LOG_FILE"
+
 services=("mysql" "nginx" "http")
 uid=$(id -u)
-if [ $uid -ne 0 ]; then
-echo "please run command with sudo"
-exit 1
+
+if [ "$uid" -ne 0 ]; then
+    echo "Please run command with sudo"
+    exit 1
 fi
+
+# 2. Corrected VALIDATE function using dynamic arguments
 VALIDATE(){
-    else if [ $? -eq 0 ]; then
-    exit 1
+    local service_name=$1
+    local exit_status=$2
+    
+    if [ "$exit_status" -eq 0 ]; then
+        echo "$service_name is already installed." | tee -a "$LOG_FILE"
     else
-    dnf install nginx -y >> log_dir
-    exit 1
+        echo "$service_name not found. Installing..." | tee -a "$LOG_FILE"
+        # Map generic names to exact package names if needed
+        if [ "$service_name" == "mysql" ]; then
+            dnf install mysql-server -y >> "$LOG_FILE" 2>&1
+        else
+            dnf install "$service_name" -y >> "$LOG_FILE" 2>&1
+        fi
+    fi
 }
-if [ ${services[0]} == mysql ]; then
-mysql --version
-$?
-fi
-VALIDATE mysql $?
-fi
-#if [ $? -eq 0 ]; then
-#exit 1
-#else
-#dnf install mysqld -y >> log_dir
-#echo "mysql installed successfully"
-#fi
-if [ ${services[1]} == nginx ]; then
-nginx -v
-$?
-fi
-VALIDATE nginx $?
-fi
-#if [ $? -eq 0 ]; then
-#exit 1
-#else
-#dnf install nginx -y >> log_dir
-#exit
-#fi
 
+# 3. Check and validate MySQL
+if [ "${services[0]}" == "mysql" ]; then
+    mysql --version &> /dev/null
+    VALIDATE "mysql" $?
+fi
 
-
+# 4. Check and validate Nginx
+if [ "${services[1]}" == "nginx" ]; then
+    nginx -v &> /dev/null
+    VALIDATE "nginx" $?
+fi
