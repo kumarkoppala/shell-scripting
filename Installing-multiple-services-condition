@@ -2,11 +2,11 @@
 log_dir=$(mkdir -p /var/log/services.log)
 services=("mysql" "nginx" "http")
 uid=$(id -u)
-if [ $uid -nq 0 ]; then
+if [ $uid -ne 0 ]; then
 echo "please run command with sudo"
 exit 1
 fi
-if [ ${services[@]} -eq mysql ]; then
+if [ ${services[1]} -eq mysql ]; then
 mysql --version
 $?
 fi
@@ -16,7 +16,7 @@ else
 dnf install ${services[0]} -y >> log_dir
 echo "mysql installed successfully"
 fi
-if [ ${services[@]} -eq nginx ]; then
+if [ ${services[2]} -eq nginx ]; then
 nginx -v
 $?
 fi
