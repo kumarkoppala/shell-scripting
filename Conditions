@@ -1,0 +1,17 @@
+num=10
+if [ $num -ge 5 ]; then
+echo "$num is greaterthan 5"
+else
+echo "$num is lessthan 5"
+fi
+
+#gt, lt, eq, ne, ge, le --> options
+
+if [ $num -eq 20 ]; then
+echo "$num is equal to 20"
+elif [ $num -le 20 ]; then
+echo "$nuim smaller than 20"
+else 
+echo "$num is greater than 20"
+fi 
+

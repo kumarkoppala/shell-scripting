@@ -1,0 +1,12 @@
+#! /bin/bash
+echo "hellow world"
+#reminder should be zero for even number
+num=$1
+reminder=$((num % 2))
+echo "$reminder"
+if [ $reminder == 0 ];
+then
+echo "it's even number $num"
+else
+echo "number is odd"
+fi

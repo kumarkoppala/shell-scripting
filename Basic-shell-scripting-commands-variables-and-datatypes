@@ -1,0 +1,31 @@
+#!/bin/bash
+num=44
+echo "$1 Wife $2"
+echo "print $num"
+echo "print all variables: $@" #print all the  variables passed Script exection 
+echo "print number of variables passed: $#"
+echo "print all variables: $*"
+echo "print script name: $0"
+echo "print first variable: $1"
+echo "print who is running the script: $USER"
+echo "print from which directory script exicuted: $PWD"
+echo "print home directory of the script executed user: $HOME"
+#set > all_var --> to print all the shell variables
+echo "print process id of current script: $$"
+sleep 5 &
+$?
+echo "print pid of the background running process: $!"
+echo "print the line number: $LINENO"
+echo "print the total script completion time: $SECONDS seconds"
+echo "Generate the Random number: $RANDOM"
+$?
+echo "To print the exit status of previous command: $?" # 0 --> sucess,  1-127 --> failure
+
+
+movies=("Ramayan" "Pushpa" "RRR")
+file=${movies[0]}.txt
+
+touch $file
+echo "it's ramayan movie related file"
+echo "${movies[@]}"
+echo "movies are: ${movies[@]}"
