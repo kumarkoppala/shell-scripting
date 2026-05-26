@@ -1,0 +1,89 @@
+
+#colors
+# Modern/Short way (Great for quick personal scripts)
+# Example echo -e "\e[31mRed Text\e[0m"
+
+# Standard/Compatible way (Best for production scripts)
+# Example echo -e "\033[0;31mRed Text\033[0m"
+
+uid=$(id -u)
+if [ $uid -ne 0 ]; then
+echo "please run script with sudo"
+exit 1
+fi
+
+log_file="/var/log/shell-script"
+touch "$log_file"
+chown ec2-user:ec2-user "$log_file"
+chmod 755 "$log_file"
+
+R='\e[31m'
+N='\e[0m'
+
+validate(){
+if [ $2 -eq 0 ]; then
+echo "$1 installed successfully" | tee -a "$log_file"
+else
+echo "$1 not installed, refer $log_file" | tee -a "$log_file"
+fi
+}
+
+dnf list installed nginx >> "$log_file" 2>&1
+if [ $? -eq 0 ]; then
+echo -e "$R nginx already installed $N" | tee -a "$log_file"
+
+else
+echo "Installing nginx" | tee -a "$log_file"
+dnf install nginx -y >> "$log_file" 2>&1
+validate "nginx" $?
+fi
+
+dnf list installed httpd >> "$log_file" 2>&1
+if [ $? -eq 0 ]; then
+echo "httpd service already installed" | tee -a "$log_file"
+
+else
+echo "Installing httpd" | tee -a "$log_file"
+dnf install httpd -y >> "$log_file" 2>&1
+validate "httpd" $?
+fi
+
+ -------------------------------------------------------------
+
+
+log_file="/home/ec2-user/$(basename "$0").logs"
+touch $log_file
+TIMESTAMP=$(date "+%Y-%m-%d %H:%M:%S")
+
+R="\e[31m"
+G="\e[32m"
+Y="\e[33m"
+N="\e[0m"
+
+uid=$(id -u)
+if [ $uid -ne 0 ]; then
+echo "$TIMESTAMP please execute script with super user" | tee -a $log_file
+exit 1
+fi
+
+validate(){
+    if [ $2 -eq 0 ]; then
+    echo "$TIMESTAMP $R [INFO] $N $1 installed successfully" | tee -a $log_file
+    else
+    echo "$R $1 failed $N" | tee -a $log_file
+    fi
+}
+for service in $@
+do
+dnf list installed $service >> "$log_file" 2>&1
+if [ $? -eq 0 ]; then
+echo "package is already installed" >> "$log_file"
+
+else
+dnf install $service -y >> "$log_file" 2>&1
+validate "$service" $?
+fi
+done
+
+
+
