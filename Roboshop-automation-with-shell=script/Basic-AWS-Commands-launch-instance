@@ -25,7 +25,7 @@ for servers in "$@"
 do
 
 # FIX 1: Fixed the nested quote issue in tag specifications
-InstanceId=$(aws ec2 run-instances --image-id ami-0d5e8769671b48387 --count 1 --instance-type t3.micro --key-name KumarVijay --security-groups roboshop-db --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=roboshop-$servers}]" --query 'Instances.InstanceId' --output text)
+InstanceId=$(aws ec2 run-instances --image-id ami-0d5e8769671b48387 --count 1 --instance-type t3.micro --key-name KumarVijay --security-groups roboshop-db --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=roboshop-$servers}]" --query 'Instances[0].InstanceId' --output text)
 validate $? "EC2 creation for $servers"
 
 echo "Waiting for $servers instance to get IP..."
