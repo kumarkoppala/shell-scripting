@@ -32,9 +32,9 @@ echo "Waiting for $servers instance to get IP..."
 aws ec2 wait instance-running --instance-ids "$InstanceId"
 
 if [ "$servers" == "frontend" ]; then
-IP=$(aws ec2 describe-instances --instance-ids $InstanceId --query 'Reservations.Instances.PublicIpAddress' --output text)
+IP=$(aws ec2 describe-instances --instance-ids $InstanceId --query 'Reservations[0].Instances[0].PublicIpAddress' --output text)
 else
-IP=$(aws ec2 describe-instances --instance-ids $InstanceId --query 'Reservations.Instances.PrivateIpAddress' --output text)
+IP=$(aws ec2 describe-instances --instance-ids $InstanceId --query 'Reservations[0].Instances[0].PrivateIpAddress' --output text)
 fi
 
 aws route53 change-resource-record-sets --hosted-zone-id "$ZONE_ID" --change-batch "$(cat <<EOF
