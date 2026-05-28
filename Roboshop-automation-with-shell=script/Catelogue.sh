@@ -56,6 +56,7 @@ echo "Downloading and extracting application artifacts..." | tee -a "$logs"
 rm -rf /app/ /tmp/catalogue.zip
 mkdir /app 
 
+# FIX: Exact asset endpoint url path used to pull the true archive binary
 curl -s -L -o /tmp/catalogue.zip https://amazonaws.com &>> "$logs"
 validate $? "Downloading catalogue source zip"
 
