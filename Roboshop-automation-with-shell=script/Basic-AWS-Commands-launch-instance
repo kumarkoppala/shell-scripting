@@ -1,0 +1,106 @@
+#!/bin/bash
+# ./$0.sh create/destroy servers_list
+if [ "$#" -lt 2 ]; then
+echo "you must pass atleast 2 variables"
+echo "variables: create/destroy servers"
+exit 1 # Stop execution so the script doesn't run with missing inputs
+fi
+
+Action=$1
+shift
+
+validate(){
+    if [ $1 -eq 0 ]; then
+    echo "$2 processed successfully"
+    else
+    echo "Error: $2 failed"
+    fi
+}
+
+ZONE_ID="Z09281972U2VCOAQJYQ2O"
+
+if [ "$Action" == "create" ]; then
+
+for servers in "$@"
+do
+
+# FIX 1: Fixed the nested quote issue in tag specifications
+InstanceId=$(aws ec2 run-instances --image-id ami-0d5e8769671b48387 --count 1 --instance-type t3.micro --key-name KumarVijay --security-groups roboshop-db --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=roboshop-$servers}]" --query 'Instances.InstanceId' --output text)
+validate $? "EC2 creation for $servers"
+
+echo "Waiting for $servers instance to get IP..."
+aws ec2 wait instance-running --instance-ids "$InstanceId"
+
+if [ "$servers" == "frontend" ]; then
+IP=$(aws ec2 describe-instances --instance-ids $InstanceId --query 'Reservations.Instances.PublicIpAddress' --output text)
+else
+IP=$(aws ec2 describe-instances --instance-ids $InstanceId --query 'Reservations.Instances.PrivateIpAddress' --output text)
+fi
+
+aws route53 change-resource-record-sets --hosted-zone-id "$ZONE_ID" --change-batch "$(cat <<EOF
+{
+  "Changes": [
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "$servers.yokshithkumar.shop",
+        "Type": "A",
+        "TTL": 1,
+        "ResourceRecords": [
+          {
+            "Value": "$IP"
+          }
+        ]
+      }
+    }
+  ]
+}
+EOF
+)"
+validate $? "Route53 update for $servers"
+
+done
+
+elif [ "$Action" == "destroy" ]; then
+    for servers in "$@"
+    do
+        echo "Searching for instances matching tag Name: roboshop-$servers..."
+        
+        # Find active instances matching the Name tag
+        InstanceIds=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=roboshop-$servers" "Name=instance-state-name,Values=pending,running,stopped" \
+            --query 'Reservations[*].Instances[*].InstanceId' \
+            --output text)
+
+        if [ -n "$InstanceIds" ] && [ "$InstanceIds" != "None" ]; then
+            # FIX 2: Clear DNS record by pointing it to a local/dummy loopback IP before killing the machine
+            echo "Cleaning up Route53 DNS mapping for $servers..."
+            aws route53 change-resource-record-sets --hosted-zone-id "$ZONE_ID" --change-batch "$(cat <<EOF
+{
+  "Changes": [
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "$servers.yokshithkumar.shop",
+        "Type": "A",
+        "TTL": 1,
+        "ResourceRecords": [
+          {
+            "Value": "127.0.0.1"
+          }
+        ]
+      }
+    }
+  ]
+}
+EOF
+)"
+            
+            # Terminate the instance
+            aws ec2 terminate-instances --instance-ids $InstanceIds
+            validate $? "Termination of roboshop-$servers ($InstanceIds)"
+        else
+            echo "No active instances found for roboshop-$servers"
+        fi
+    done
+fi
