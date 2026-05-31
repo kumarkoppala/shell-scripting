@@ -54,13 +54,18 @@ fi
 # 6. Artifact download and deployment extraction
 echo "Downloading and extracting application artifacts..." | tee -a "$logs"
 rm -rf /app/ /tmp/catalogue.zip
-mkdir /app 
+if [ -d /app ]; then
+echo "/app directory already existed...skipping"
+else
+mkdir /app
+fi
 
 # FIX: Exact asset endpoint url path used to pull the true archive binary
-curl -s -L -o /tmp/catalogue.zip https://amazonaws.com &>> "$logs"
+curl -o /tmp/catalogue.zip https://roboshop-artifacts.s3.amazonaws.com/catalogue-v3.zip  &>>$LOGS_FILE
 validate $? "Downloading catalogue source zip"
 
 cd /app 
+dnf install unzip -y
 unzip -o /tmp/catalogue.zip &>> "$logs"
 validate $? "Extracting catalogue artifacts"
 
