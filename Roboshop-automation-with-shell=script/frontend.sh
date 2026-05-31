@@ -1,85 +1,53 @@
 #!/bin/bash
 
-# 1. Reset and install Nginx 1.24 module stream
-dnf module disable nginx -y
-dnf module enable nginx:1.24 -y
-dnf install nginx -y
+LOGS_FOLDER="/var/log/roboshop"
+sudo mkdir -p $LOGS_FOLDER
+sudo chown -R ec2-user:ec2-user $LOGS_FOLDER
+sudo chmod -R 755 $LOGS_FOLDER
+LOGS_FILE="$LOGS_FOLDER/$0.log"
+SCRIPT_DIR=$PWD
+MYSQL_HOST=mysql.daws90s.shop
 
-# 2. Enable service but don't start it until config is written
-systemctl enable nginx
+USERID=$(id -u)
+R="\e[31m"
+G="\e[32m"
+Y="\e[33m"
+N="\e[0m"
+TIMESTAMP=$(date "+%Y-%m-%d %H:%M:%S")
 
-# 3. Clean target directory and extract frontend assets
-rm -rf /usr/share/nginx/html/*
-curl -o /tmp/frontend.zip https://roboshop-artifacts.s3.amazonaws.com/frontend-v3.zip
-cd /usr/share/nginx/html || exit 1
-unzip -o /tmp/frontend.zip
+if [ $USERID -ne 0 ]; then
+    echo -e "$TIMESTAMP [ERROR] $R Please run this script with root access $N" | tee -a $LOGS_FILE
+    exit 1
+fi
 
-# 4. FIX: Use a single '>' to completely overwrite the default configuration file
-cat << 'EOF' > /etc/nginx/nginx.conf
-user nginx;
-worker_processes auto;
-error_log /var/log/nginx/error.log notice;
-pid /run/nginx.pid;
-
-include /usr/share/nginx/modules/*.conf;
-
-events {
-    worker_connections 1024;
+VALIDATE(){
+    if [ $1 -ne 0 ]; then
+        echo -e "$TIMESTAMP [ERROR] $2 ... $R FAILURE $N" | tee -a $LOGS_FILE
+        exit 1
+    else
+        echo -e "$TIMESTAMP [INFO] $2 ... $G SUCCESS $N" | tee -a $LOGS_FILE
+    fi
 }
 
-http {
-    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
-                      '$status $body_bytes_sent "$http_referer" '
-                      '"$http_user_agent" "$http_x_forwarded_for"';
+dnf module disable nginx -y &>> $LOGS_FILE
+dnf module enable nginx:1.24 -y &>> $LOGS_FILE
+dnf install nginx -y &>> $LOGS_FILE
+VALIDATE $? "Installing Nginx"
 
-    access_log  /var/log/nginx/access.log  main;
+rm -rf /usr/share/nginx/html/* &>> $LOGS_FILE
+VALIDATE $? "Removed Default code"
 
-    sendfile            on;
-    tcp_nopush          on;
-    keepalive_timeout   65;
-    types_hash_max_size 4096;
+curl -o /tmp/frontend.zip https://roboshop-artifacts.s3.amazonaws.com/frontend-v3.zip &>> $LOGS_FILE
+cd /usr/share/nginx/html 
+unzip /tmp/frontend.zip &>> $LOGS_FILE
+VALIDATE $? "Downloaded and extracted frontend code"
 
-    include             /etc/nginx/mime.types;
-    default_type        application/octet-stream;
+rm -rf /etc/nginx/nginx.conf
+VALIDATE $? "Removed Default conf"
 
-    include /etc/nginx/conf.d/*.conf;
+cp $SCRIPT_DIR/nginx.conf /etc/nginx/nginx.conf
+VALIDATE $? "Copied roboshop nginx conf"
 
-    server {
-        listen       80;
-        listen       [::]:80;
-        server_name  _;
-        root         /usr/share/nginx/html;
-
-        include /etc/nginx/default.d/*.conf;
-
-        error_page 404 /404.html;
-        location = /404.html {
-        }
-
-        error_page 500 502 503 504 /50x.html;
-        location = /50x.html {
-        }
-
-        location /images/ {
-          expires 5s;
-          root   /usr/share/nginx/html;
-          try_files $uri /images/placeholder.jpg;
-        }
-        
-        # Proxy Pass Configurations
-        location /api/catalogue/ { proxy_pass http://mangodb.yokshithkumar.shop:8080/; }
-        location /api/user/ { proxy_pass http://localhost:8080/; }
-        location /api/cart/ { proxy_pass http://localhost:8080/; }
-        location /api/shipping/ { proxy_pass http://localhost:8080/; }
-        location /api/payment/ { proxy_pass http://localhost:8080/; }
-
-        location /health {
-          stub_status on;
-          access_log off;
-        }
-    }
-}
-EOF
-
-# 5. Start Nginx cleanly with the new configuration
 systemctl restart nginx
+systemctl enable nginx &>> $LOGS_FILE
+VALIDATE $? "Enabled and restarted nginx"
