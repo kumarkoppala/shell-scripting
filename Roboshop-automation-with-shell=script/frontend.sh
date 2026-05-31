@@ -1,16 +1,21 @@
+#!/bin/bash
+
+# 1. Reset and install Nginx 1.24 module stream
 dnf module disable nginx -y
 dnf module enable nginx:1.24 -y
 dnf install nginx -y
 
+# 2. Enable service but don't start it until config is written
 systemctl enable nginx
-systemctl start nginx
 
+# 3. Clean target directory and extract frontend assets
 rm -rf /usr/share/nginx/html/*
 curl -o /tmp/frontend.zip https://roboshop-artifacts.s3.amazonaws.com/frontend-v3.zip
-cd /usr/share/nginx/html 
-unzip /tmp/frontend.zip
+cd /usr/share/nginx/html || exit 1
+unzip -o /tmp/frontend.zip
 
-cat <<-EOF >> /etc/nginx/nginx.conf
+# 4. FIX: Use a single '>' to completely overwrite the default configuration file
+cat << 'EOF' > /etc/nginx/nginx.conf
 user nginx;
 worker_processes auto;
 error_log /var/log/nginx/error.log notice;
@@ -60,6 +65,8 @@ http {
           root   /usr/share/nginx/html;
           try_files $uri /images/placeholder.jpg;
         }
+        
+        # Proxy Pass Configurations
         location /api/catalogue/ { proxy_pass http://mangodb.yokshithkumar.shop:8080/; }
         location /api/user/ { proxy_pass http://localhost:8080/; }
         location /api/cart/ { proxy_pass http://localhost:8080/; }
@@ -70,10 +77,9 @@ http {
           stub_status on;
           access_log off;
         }
-
     }
 }
-
 EOF
 
-systemctl restart nginx 
+# 5. Start Nginx cleanly with the new configuration
+systemctl restart nginx
