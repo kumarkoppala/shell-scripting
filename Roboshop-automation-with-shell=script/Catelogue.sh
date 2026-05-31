@@ -61,9 +61,7 @@ mkdir /app
 fi
 
 # FIX: Exact asset endpoint url path used to pull the true archive binary
-curl -o /tmp/catalogue.zip https://roboshop-artifacts.s3.amazonaws.com/catalogue-v3.zip  &>>$LOGS_FILE
-validate $? "Downloading catalogue source zip"
-
+curl -o /tmp/catalogue.zip https://roboshop-artifacts.s3.amazonaws.com/catalogue-v3.zip  &>> "$logs"
 cd /app 
 dnf install unzip -y
 unzip -o /tmp/catalogue.zip &>> "$logs"
